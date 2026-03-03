@@ -1,4 +1,4 @@
-use crate::cpu::AddressingMode;
+use crate::cpu::state::AddressingMode;
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
