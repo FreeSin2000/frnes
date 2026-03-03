@@ -423,8 +423,9 @@ impl CPU {
     }
 
     pub fn rts(&mut self, opcode: &OpCode) {
-        self.program_counter = self.stack_pop_u16();
         self.advance_pc(opcode);
+        self.program_counter = self.stack_pop_u16();
+        self.program_counter = self.program_counter.wrapping_add(1);
     }
 
     pub fn bvs(&mut self, opcode: &OpCode) {
@@ -470,7 +471,7 @@ impl CPU {
             self.program_counter = result;
         }
     }
-    
+
     pub fn beq(&mut self, opcode: &OpCode) {
         let offset = self.mem_read(self.program_counter) as i8;
         self.advance_pc(opcode);
@@ -481,4 +482,29 @@ impl CPU {
             self.program_counter = result;
         }
     }
+
+    pub fn sei(&mut self, opcode: &OpCode) {
+        self.set_flag(FLAG_INTERRUPT_DISABLE, true);
+        self.advance_pc(opcode);
+    }
+
+    pub fn clv(&mut self, opcode: &OpCode) {
+        self.set_flag(FLAG_CARRY, false);
+        self.advance_pc(opcode);
+    }
+
+    pub fn cld(&mut self, opcode: &OpCode) {
+        self.set_flag(FLAG_DECIMAL, false);
+        self.advance_pc(opcode);
+    }
+
+    pub fn nop(&mut self, opcode: &OpCode) {
+        self.advance_pc(opcode);
+    }
+
+    pub fn sed(&mut self, opcode: &OpCode) {
+        self.set_flag(FLAG_DECIMAL, true);
+        self.advance_pc(opcode);
+    }
+
 }

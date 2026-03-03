@@ -281,7 +281,7 @@ impl CPU {
                     self.bvs(opcode);
                 }
                 0x78 => {
-                    todo!("SEI");
+                    self.sei(opcode);
                 }
                 0x81 | 0x85 | 0x8D | 0x91 | 0x95 | 0x99 | 0x9D => {
                     self.sta(opcode);
@@ -326,7 +326,7 @@ impl CPU {
                     self.bcs(opcode);
                 }
                 0xB8 => {
-                    todo!("CLV");
+                    self.clv(opcode);
                 }
                 0xBA => {
                     self.tsx(opcode);
@@ -350,7 +350,7 @@ impl CPU {
                     self.bne(opcode);
                 }
                 0xD8 => {
-                    todo!("CLD");
+                    self.cld(opcode);
                 }
                 0xE0 | 0xE4 | 0xEC => {
                     self.cpx(opcode);
@@ -365,13 +365,13 @@ impl CPU {
                     self.inx(opcode);
                 }
                 0xEA => {
-                    todo!("NOP");
+                    self.nop(opcode);
                 }
                 0xF0 => {
                     self.beq(opcode);
                 }
                 0xF8 => {
-                    todo!("SED");
+                    self.sed(opcode);
                 }
                 _ => todo!(),
             }
