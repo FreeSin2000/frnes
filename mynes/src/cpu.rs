@@ -176,9 +176,11 @@ impl CPU {
     }
 
     fn compare(&mut self, reg: u8, oprand: u8) {
+        let result = reg.wrapping_sub(oprand);
+
         self.set_flag(FLAG_CARRY, reg >= oprand);
-        self.set_flag(FLAG_ZERO, reg == oprand);
-        self.set_flag(FLAG_NEGATIVE, reg < oprand);
+        self.set_flag(FLAG_ZERO, result == 0);
+        self.set_flag(FLAG_NEGATIVE, (result & 0x80) != 0);
     }
 
     fn branch_if(&mut self, cond: bool, offset: i8) {

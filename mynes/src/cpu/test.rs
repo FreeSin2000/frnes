@@ -807,6 +807,76 @@ fn test_cli_clears_interrupt_disable() {
 }
 
 #[test]
+fn test_sei_sets_interrupt_disable_flag() {
+    let mut cpu = CPU::new();
+
+    cpu.load(vec![0x58, 0x78, 0x00]); // CLI clears I, SEI should set it
+    cpu.reset();
+    cpu.run();
+
+    assert!(cpu.get_flag(FLAG_INTERRUPT_DISABLE));
+}
+
+#[test]
+fn test_sed_sets_decimal_flag() {
+    let mut cpu = CPU::new();
+
+    cpu.load(vec![0xD8, 0xF8, 0x00]); // CLD clears D, SED should set it
+    cpu.reset();
+    cpu.run();
+
+    assert!(cpu.get_flag(FLAG_DECIMAL));
+}
+
+#[test]
+fn test_cld_clears_decimal_flag() {
+    let mut cpu = CPU::new();
+
+    cpu.load(vec![0xF8, 0xD8, 0x00]); // SED sets D, CLD should clear it
+    cpu.reset();
+    cpu.run();
+
+    assert!(!cpu.get_flag(FLAG_DECIMAL));
+}
+
+#[test]
+fn test_clv_clears_overflow_flag() {
+    let mut cpu = CPU::new();
+
+    cpu.load(vec![
+        0xA9, 0xFF, // LDA #$FF
+        0x2C, 0x00, 0x20, // BIT $2000 sets V from memory
+        0xB8, // CLV clears overflow
+        0x00,
+    ]);
+    cpu.reset();
+    cpu.mem_write(0x2000, 0b0100_0000);
+    cpu.run();
+
+    assert!(!cpu.get_flag(FLAG_OVERFLOW));
+}
+
+#[test]
+fn test_nop_does_not_change_state() {
+    let mut cpu = CPU::new();
+
+    cpu.load(vec![
+        0xEA, // NOP
+        0xA9, 0x42, // LDA #$42
+        0x00,
+    ]);
+    cpu.reset();
+    cpu.status = FLAG_CARRY | FLAG_ZERO; // preset some flags
+    cpu.run();
+
+    assert_eq!(cpu.register_a, 0x42);
+    assert_eq!(cpu.program_counter, 0x8004);
+    // Zero flag is set by LDA #$42? No, should be clear. Carry should stay set from before
+    assert!(cpu.get_flag(FLAG_CARRY));
+    assert!(!cpu.get_flag(FLAG_ZERO));
+}
+
+#[test]
 fn test_eor_immediate_sets_flags() {
     let mut cpu = CPU::new();
 

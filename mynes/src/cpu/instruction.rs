@@ -489,7 +489,7 @@ impl CPU {
     }
 
     pub fn clv(&mut self, opcode: &OpCode) {
-        self.set_flag(FLAG_CARRY, false);
+        self.set_flag(FLAG_OVERFLOW, false);
         self.advance_pc(opcode);
     }
 
