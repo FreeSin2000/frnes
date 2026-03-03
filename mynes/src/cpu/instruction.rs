@@ -183,9 +183,7 @@ impl CPU {
         let value = self.mem_read(addr);
 
         let a = self.register_a;
-        let result = a.wrapping_sub(value);
-        self.set_flag(FLAG_CARRY, a >= value);
-        self.update_zero_and_negative_flags(result);
+        self.compare(a, value);
         self.advance_pc(opcode);
     }
 
@@ -194,9 +192,7 @@ impl CPU {
         let value = self.mem_read(addr);
 
         let x = self.register_x;
-        let result = x.wrapping_sub(value);
-        self.set_flag(FLAG_CARRY, x >= value);
-        self.update_zero_and_negative_flags(result);
+        self.compare(x, value);
         self.advance_pc(opcode);
     }
 
@@ -205,9 +201,7 @@ impl CPU {
         let value = self.mem_read(addr);
 
         let y = self.register_y;
-        let result = y.wrapping_sub(value);
-        self.set_flag(FLAG_CARRY, y >= value);
-        self.update_zero_and_negative_flags(result);
+        self.compare(y, value);
         self.advance_pc(opcode);
     }
 
@@ -365,23 +359,13 @@ impl CPU {
     pub fn bpl(&mut self, opcode: &OpCode) {
         let offset = self.mem_read(self.program_counter) as i8;
         self.advance_pc(opcode);
-        let result = self
-            .program_counter
-            .wrapping_add(offset as i8 as i16 as u16);
-        if !self.get_flag(FLAG_NEGATIVE) {
-            self.program_counter = result;
-        }
+        self.branch_if(!self.get_flag(FLAG_NEGATIVE), offset);
     }
 
     pub fn bmi(&mut self, opcode: &OpCode) {
         let offset = self.mem_read(self.program_counter) as i8;
         self.advance_pc(opcode);
-        let result = self
-            .program_counter
-            .wrapping_add(offset as i8 as i16 as u16);
-        if self.get_flag(FLAG_NEGATIVE) {
-            self.program_counter = result;
-        }
+        self.branch_if(self.get_flag(FLAG_NEGATIVE), offset);
     }
 
     pub fn clc(&mut self, opcode: &OpCode) {
@@ -431,56 +415,31 @@ impl CPU {
     pub fn bvs(&mut self, opcode: &OpCode) {
         let offset = self.mem_read(self.program_counter) as i8;
         self.advance_pc(opcode);
-        let result = self
-            .program_counter
-            .wrapping_add(offset as i8 as i16 as u16);
-        if self.get_flag(FLAG_OVERFLOW) {
-            self.program_counter = result;
-        }
+        self.branch_if(self.get_flag(FLAG_OVERFLOW), offset);
     }
 
     pub fn bcc(&mut self, opcode: &OpCode) {
         let offset = self.mem_read(self.program_counter) as i8;
         self.advance_pc(opcode);
-        let result = self
-            .program_counter
-            .wrapping_add(offset as i8 as i16 as u16);
-        if !self.get_flag(FLAG_CARRY) {
-            self.program_counter = result;
-        }
+        self.branch_if(!self.get_flag(FLAG_CARRY), offset);
     }
 
     pub fn bcs(&mut self, opcode: &OpCode) {
         let offset = self.mem_read(self.program_counter) as i8;
         self.advance_pc(opcode);
-        let result = self
-            .program_counter
-            .wrapping_add(offset as i8 as i16 as u16);
-        if self.get_flag(FLAG_CARRY) {
-            self.program_counter = result;
-        }
+        self.branch_if(self.get_flag(FLAG_CARRY), offset);
     }
 
     pub fn bne(&mut self, opcode: &OpCode) {
         let offset = self.mem_read(self.program_counter) as i8;
         self.advance_pc(opcode);
-        let result = self
-            .program_counter
-            .wrapping_add(offset as i8 as i16 as u16);
-        if !self.get_flag(FLAG_ZERO) {
-            self.program_counter = result;
-        }
+        self.branch_if(!self.get_flag(FLAG_ZERO), offset);
     }
 
     pub fn beq(&mut self, opcode: &OpCode) {
         let offset = self.mem_read(self.program_counter) as i8;
         self.advance_pc(opcode);
-        let result = self
-            .program_counter
-            .wrapping_add(offset as i8 as i16 as u16);
-        if self.get_flag(FLAG_ZERO) {
-            self.program_counter = result;
-        }
+        self.branch_if(self.get_flag(FLAG_ZERO), offset);
     }
 
     pub fn sei(&mut self, opcode: &OpCode) {
