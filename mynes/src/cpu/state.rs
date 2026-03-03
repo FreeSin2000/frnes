@@ -16,6 +16,8 @@ pub struct CPU {
     pub program_counter: u16,
     pub sp: u8,
     pub memory: [u8; 0xFFFF],
+
+    pub halted: bool,
 }
 
 #[derive(Debug)]

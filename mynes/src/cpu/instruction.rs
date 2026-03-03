@@ -397,7 +397,6 @@ impl CPU {
 
     pub fn jmp(&mut self, opcode: &OpCode) {
         let addr = self.get_operand_address(&opcode.mode);
-        println!("{:04x}", addr);
         self.program_counter = addr;
     }
 

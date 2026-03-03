@@ -117,7 +117,7 @@ fn test_branch_if_condition_false_keeps_program_counter() {
 #[test]
 fn test_0xa9_lda_immediate_load_data() {
     let mut cpu = CPU::new();
-    cpu.load_and_run(vec![0xa9, 0x05, 0x00]);
+    cpu.load_and_run(vec![0xa9, 0x05, 0x00], 0x8000);
     assert_eq!(cpu.register_a, 0x05);
     assert!(cpu.status & 0b0000_0010 == 0b00);
     assert!(cpu.status & 0b1000_0000 == 0);
@@ -126,7 +126,7 @@ fn test_0xa9_lda_immediate_load_data() {
 #[test]
 fn test_0xa9_lda_zero_flag() {
     let mut cpu = CPU::new();
-    cpu.load_and_run(vec![0xa9, 0x00, 0x00]);
+    cpu.load_and_run(vec![0xa9, 0x00, 0x00], 0x8000);
     assert!(cpu.status & 0b0000_0010 == 0b10);
 }
 
@@ -134,7 +134,7 @@ fn test_0xa9_lda_zero_flag() {
 fn test_0xaa_tax_move_a_to_x() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![0xaa, 0x00]);
+    cpu.load(vec![0xaa, 0x00], 0x8000);
     cpu.reset();
     cpu.register_a = 10;
     cpu.run();
@@ -145,7 +145,7 @@ fn test_0xaa_tax_move_a_to_x() {
 #[test]
 fn test_5_ops_working_together() {
     let mut cpu = CPU::new();
-    cpu.load_and_run(vec![0xa9, 0xc0, 0xaa, 0xe8, 0x00]);
+    cpu.load_and_run(vec![0xa9, 0xc0, 0xaa, 0xe8, 0x00], 0x8000);
 
     assert_eq!(cpu.register_x, 0xc1)
 }
@@ -154,7 +154,7 @@ fn test_5_ops_working_together() {
 fn test_inx_overflow() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![0xe8, 0xe8, 0x00]);
+    cpu.load(vec![0xe8, 0xe8, 0x00], 0x8000);
     cpu.reset();
     cpu.register_x = 0xff;
     cpu.run();
@@ -165,7 +165,7 @@ fn test_lda_from_memory() {
     let mut cpu = CPU::new();
     cpu.mem_write(0x10, 0x55);
 
-    cpu.load_and_run(vec![0xa5, 0x10, 0x00]);
+    cpu.load_and_run(vec![0xa5, 0x10, 0x00], 0x8000);
 
     assert_eq!(cpu.register_a, 0x55);
 }
@@ -174,7 +174,7 @@ fn test_lda_from_memory() {
 fn test_ldx_immediate_sets_zero_flag() {
     let mut cpu = CPU::new();
 
-    cpu.load_and_run(vec![0xa2, 0x00, 0x00]);
+    cpu.load_and_run(vec![0xa2, 0x00, 0x00], 0x8000);
 
     assert_eq!(cpu.register_x, 0x00);
     assert!(cpu.get_flag(FLAG_ZERO));
@@ -186,7 +186,7 @@ fn test_ldy_absolute_sets_negative_flag() {
     let mut cpu = CPU::new();
     cpu.mem_write(0x1234, 0x80);
 
-    cpu.load_and_run(vec![0xac, 0x34, 0x12, 0x00]);
+    cpu.load_and_run(vec![0xac, 0x34, 0x12, 0x00], 0x8000);
 
     assert_eq!(cpu.register_y, 0x80);
     assert!(cpu.get_flag(FLAG_NEGATIVE));
@@ -197,7 +197,10 @@ fn test_ldy_absolute_sets_negative_flag() {
 fn test_store_instructions_write_memory() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![0x8d, 0x00, 0x20, 0x86, 0x10, 0x8c, 0x02, 0x20, 0x00]);
+    cpu.load(
+        vec![0x8d, 0x00, 0x20, 0x86, 0x10, 0x8c, 0x02, 0x20, 0x00],
+        0x8000,
+    );
     cpu.reset();
     cpu.register_a = 0x3c;
     cpu.register_x = 0x77;
@@ -213,7 +216,10 @@ fn test_store_instructions_write_memory() {
 fn test_transfer_instructions_update_registers_and_flags() {
     let mut cpu = CPU::new();
 
-    cpu.load_and_run(vec![0xa9, 0x00, 0xa8, 0xa9, 0x10, 0xaa, 0x8a, 0x98, 0x00]);
+    cpu.load_and_run(
+        vec![0xa9, 0x00, 0xa8, 0xa9, 0x10, 0xaa, 0x8a, 0x98, 0x00],
+        0x8000,
+    );
 
     assert_eq!(cpu.register_y, 0x00);
     assert_eq!(cpu.register_x, 0x10);
@@ -225,7 +231,7 @@ fn test_transfer_instructions_update_registers_and_flags() {
 fn test_php_plp_roundtrip_status_register() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![0x08, 0x28, 0x00]);
+    cpu.load(vec![0x08, 0x28, 0x00], 0x8000);
     cpu.reset();
     cpu.status = 0b1010_1100;
     cpu.run();
@@ -238,7 +244,7 @@ fn test_php_plp_roundtrip_status_register() {
 fn test_pha_pla_roundtrip_accumulator() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![0x48, 0x68, 0x00]);
+    cpu.load(vec![0x48, 0x68, 0x00], 0x8000);
     cpu.reset();
     cpu.register_a = 0x7f;
     cpu.run();
@@ -251,7 +257,7 @@ fn test_pha_pla_roundtrip_accumulator() {
 fn test_ora_immediate_sets_negative_flag() {
     let mut cpu = CPU::new();
 
-    cpu.load_and_run(vec![0xa9, 0x40, 0x09, 0xc0, 0x00]);
+    cpu.load_and_run(vec![0xa9, 0x40, 0x09, 0xc0, 0x00], 0x8000);
 
     assert_eq!(cpu.register_a, 0xC0);
     assert!(cpu.get_flag(FLAG_NEGATIVE));
@@ -262,7 +268,7 @@ fn test_ora_immediate_sets_negative_flag() {
 fn test_and_immediate_sets_zero_flag() {
     let mut cpu = CPU::new();
 
-    cpu.load_and_run(vec![0xa9, 0x0f, 0x29, 0xf0, 0x00]);
+    cpu.load_and_run(vec![0xa9, 0x0f, 0x29, 0xf0, 0x00], 0x8000);
 
     assert_eq!(cpu.register_a, 0x00);
     assert!(cpu.get_flag(FLAG_ZERO));
@@ -273,7 +279,7 @@ fn test_bit_absolute_updates_negative_and_overflow() {
     let mut cpu = CPU::new();
     cpu.mem_write(0x2000, 0b1100_0000);
 
-    cpu.load_and_run(vec![0xa9, 0xff, 0x2c, 0x00, 0x20, 0x00]);
+    cpu.load_and_run(vec![0xa9, 0xff, 0x2c, 0x00, 0x20, 0x00], 0x8000);
 
     assert!(cpu.get_flag(FLAG_OVERFLOW));
     assert!(cpu.get_flag(FLAG_NEGATIVE));
@@ -284,7 +290,7 @@ fn test_bit_absolute_updates_negative_and_overflow() {
 fn test_adc_sets_overflow_flag() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![0xa9, 0x50, 0x69, 0x50, 0x00]);
+    cpu.load(vec![0xa9, 0x50, 0x69, 0x50, 0x00], 0x8000);
     cpu.reset();
     cpu.run();
 
@@ -297,7 +303,7 @@ fn test_adc_sets_overflow_flag() {
 fn test_sbc_uses_carry_as_borrow() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![0xa9, 0x50, 0xe9, 0x10, 0x00]);
+    cpu.load(vec![0xa9, 0x50, 0xe9, 0x10, 0x00], 0x8000);
     cpu.reset();
     cpu.status = FLAG_CARRY; // no borrow
     cpu.run();
@@ -312,7 +318,7 @@ fn test_cmp_sets_zero_and_carry() {
     let mut cpu = CPU::new();
     cpu.mem_write(0x0010, 0x55);
 
-    cpu.load_and_run(vec![0xa9, 0x55, 0xc5, 0x10, 0x00]);
+    cpu.load_and_run(vec![0xa9, 0x55, 0xc5, 0x10, 0x00], 0x8000);
 
     assert!(cpu.get_flag(FLAG_ZERO));
     assert!(cpu.get_flag(FLAG_CARRY));
@@ -322,7 +328,7 @@ fn test_cmp_sets_zero_and_carry() {
 fn test_cpx_sets_negative_flag() {
     let mut cpu = CPU::new();
 
-    cpu.load_and_run(vec![0xa2, 0x10, 0xe0, 0x20, 0x00]);
+    cpu.load_and_run(vec![0xa2, 0x10, 0xe0, 0x20, 0x00], 0x8000);
 
     assert!(cpu.get_flag(FLAG_NEGATIVE));
     assert!(!cpu.get_flag(FLAG_CARRY));
@@ -332,7 +338,7 @@ fn test_cpx_sets_negative_flag() {
 fn test_cpy_sets_zero_flag() {
     let mut cpu = CPU::new();
 
-    cpu.load_and_run(vec![0xa0, 0x20, 0xc0, 0x20, 0x00]);
+    cpu.load_and_run(vec![0xa0, 0x20, 0xc0, 0x20, 0x00], 0x8000);
 
     assert!(cpu.get_flag(FLAG_ZERO));
     assert!(cpu.get_flag(FLAG_CARRY));
@@ -342,7 +348,7 @@ fn test_cpy_sets_zero_flag() {
 fn test_txs_and_tsx_roundtrip_stack_pointer() {
     let mut cpu = CPU::new();
 
-    cpu.load_and_run(vec![0xa2, 0x7f, 0x9a, 0xba, 0x00]);
+    cpu.load_and_run(vec![0xa2, 0x7f, 0x9a, 0xba, 0x00], 0x8000);
 
     assert_eq!(cpu.sp, 0x7f);
     assert_eq!(cpu.register_x, 0x7f);
@@ -352,7 +358,7 @@ fn test_txs_and_tsx_roundtrip_stack_pointer() {
 fn test_asl_accumulator_sets_carry() {
     let mut cpu = CPU::new();
 
-    cpu.load_and_run(vec![0xa9, 0x81, 0x0a, 0x00]);
+    cpu.load_and_run(vec![0xa9, 0x81, 0x0a, 0x00], 0x8000);
 
     assert_eq!(cpu.register_a, 0x02);
     assert!(cpu.get_flag(FLAG_CARRY));
@@ -364,7 +370,7 @@ fn test_asl_zeropage_updates_memory_and_zero_flag() {
     let mut cpu = CPU::new();
     cpu.mem_write(0x0042, 0x80);
 
-    cpu.load_and_run(vec![0x06, 0x42, 0x00]);
+    cpu.load_and_run(vec![0x06, 0x42, 0x00], 0x8000);
 
     assert_eq!(cpu.mem_read(0x0042), 0x00);
     assert!(cpu.get_flag(FLAG_CARRY));
@@ -375,7 +381,7 @@ fn test_asl_zeropage_updates_memory_and_zero_flag() {
 fn test_lsr_accumulator_clears_negative_sets_carry() {
     let mut cpu = CPU::new();
 
-    cpu.load_and_run(vec![0xa9, 0x03, 0x4a, 0x00]);
+    cpu.load_and_run(vec![0xa9, 0x03, 0x4a, 0x00], 0x8000);
 
     assert_eq!(cpu.register_a, 0x01);
     assert!(!cpu.get_flag(FLAG_NEGATIVE));
@@ -386,7 +392,7 @@ fn test_lsr_accumulator_clears_negative_sets_carry() {
 fn test_rol_accumulator_uses_carry() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![0x38, 0xa9, 0x40, 0x2a, 0x00]);
+    cpu.load(vec![0x38, 0xa9, 0x40, 0x2a, 0x00], 0x8000);
     cpu.reset();
     cpu.run();
 
@@ -400,7 +406,7 @@ fn test_ror_zeropage_with_carry_in() {
     let mut cpu = CPU::new();
     cpu.mem_write(0x0005, 0x02);
 
-    cpu.load(vec![0x38, 0x66, 0x05, 0x00]);
+    cpu.load(vec![0x38, 0x66, 0x05, 0x00], 0x8000);
     cpu.reset();
     cpu.run();
 
@@ -415,7 +421,7 @@ fn test_inc_and_dec_update_flags() {
     let mut cpu = CPU::new();
     cpu.mem_write(0x00aa, 0xff);
 
-    cpu.load_and_run(vec![0xe6, 0xaa, 0xc6, 0xaa, 0x00]);
+    cpu.load_and_run(vec![0xe6, 0xaa, 0xc6, 0xaa, 0x00], 0x8000);
 
     assert_eq!(cpu.mem_read(0x00aa), 0xff);
     assert!(!cpu.get_flag(FLAG_ZERO));
@@ -426,7 +432,7 @@ fn test_inc_and_dec_update_flags() {
 fn test_dex_underflow_sets_negative() {
     let mut cpu = CPU::new();
 
-    cpu.load_and_run(vec![0xa2, 0x00, 0xca, 0x00]);
+    cpu.load_and_run(vec![0xa2, 0x00, 0xca, 0x00], 0x8000);
 
     assert_eq!(cpu.register_x, 0xff);
     assert!(cpu.get_flag(FLAG_NEGATIVE));
@@ -436,7 +442,7 @@ fn test_dex_underflow_sets_negative() {
 fn test_dey_sets_zero_flag() {
     let mut cpu = CPU::new();
 
-    cpu.load_and_run(vec![0xa0, 0x01, 0x88, 0x00]);
+    cpu.load_and_run(vec![0xa0, 0x01, 0x88, 0x00], 0x8000);
 
     assert_eq!(cpu.register_y, 0x00);
     assert!(cpu.get_flag(FLAG_ZERO));
@@ -447,7 +453,7 @@ fn test_bit_zero_flag_when_mask_clears_a() {
     let mut cpu = CPU::new();
     cpu.mem_write(0x0040, 0x00);
 
-    cpu.load_and_run(vec![0xa9, 0xff, 0x24, 0x40, 0x00]);
+    cpu.load_and_run(vec![0xa9, 0xff, 0x24, 0x40, 0x00], 0x8000);
 
     assert!(cpu.get_flag(FLAG_ZERO));
     assert!(!cpu.get_flag(FLAG_OVERFLOW));
@@ -458,7 +464,7 @@ fn test_bit_zero_flag_when_mask_clears_a() {
 fn test_adc_sets_carry_flag_on_overflow() {
     let mut cpu = CPU::new();
 
-    cpu.load_and_run(vec![0xa9, 0xff, 0x69, 0x01, 0x00]);
+    cpu.load_and_run(vec![0xa9, 0xff, 0x69, 0x01, 0x00], 0x8000);
 
     assert_eq!(cpu.register_a, 0x00);
     assert!(cpu.get_flag(FLAG_CARRY));
@@ -469,7 +475,7 @@ fn test_adc_sets_carry_flag_on_overflow() {
 fn test_sbc_with_borrow_clears_carry_and_sets_negative() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![0xa9, 0x10, 0xe9, 0x20, 0x00]);
+    cpu.load(vec![0xa9, 0x10, 0xe9, 0x20, 0x00], 0x8000);
     cpu.reset();
     cpu.status = FLAG_CARRY; // ensure initial borrow clear
     cpu.run();
@@ -484,7 +490,7 @@ fn test_lsr_zeropage_shifts_into_carry() {
     let mut cpu = CPU::new();
     cpu.mem_write(0x0002, 0x01);
 
-    cpu.load_and_run(vec![0x46, 0x02, 0x00]);
+    cpu.load_and_run(vec![0x46, 0x02, 0x00], 0x8000);
 
     assert_eq!(cpu.mem_read(0x0002), 0x00);
     assert!(cpu.get_flag(FLAG_CARRY));
@@ -496,7 +502,7 @@ fn test_rol_zeropage_incorporates_previous_carry() {
     let mut cpu = CPU::new();
     cpu.mem_write(0x00f0, 0x7f);
 
-    cpu.load(vec![0x38, 0x26, 0xf0, 0x00]);
+    cpu.load(vec![0x38, 0x26, 0xf0, 0x00], 0x8000);
     cpu.reset();
     cpu.run();
 
@@ -509,7 +515,7 @@ fn test_rol_zeropage_incorporates_previous_carry() {
 fn test_iny_wraps_and_sets_zero_flag() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![0xa0, 0xff, 0xc8, 0x00]);
+    cpu.load(vec![0xa0, 0xff, 0xc8, 0x00], 0x8000);
     cpu.reset();
     cpu.run();
 
@@ -521,13 +527,16 @@ fn test_iny_wraps_and_sets_zero_flag() {
 fn test_bpl_branches_when_negative_clear() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![
-        0xa9, 0x01, // LDA #$01 (negative clear)
-        0x10, 0x02, // BPL skip next instruction
-        0xa9, 0x00, // would execute if branch failed
-        0xa9, 0x42, // branch target
-        0x00,
-    ]);
+    cpu.load(
+        vec![
+            0xa9, 0x01, // LDA #$01 (negative clear)
+            0x10, 0x02, // BPL skip next instruction
+            0xa9, 0x00, // would execute if branch failed
+            0xa9, 0x42, // branch target
+            0x00,
+        ],
+        0x8000,
+    );
     cpu.reset();
     cpu.run();
 
@@ -538,12 +547,15 @@ fn test_bpl_branches_when_negative_clear() {
 fn test_bpl_does_not_branch_when_negative_set() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![
-        0xa9, 0xff, // LDA #$FF (sets negative)
-        0x10, 0x02, // BPL would skip next LDA if not negative
-        0xa9, 0x66, // should execute because branch is inhibited
-        0x00,
-    ]);
+    cpu.load(
+        vec![
+            0xa9, 0xff, // LDA #$FF (sets negative)
+            0x10, 0x02, // BPL would skip next LDA if not negative
+            0xa9, 0x66, // should execute because branch is inhibited
+            0x00,
+        ],
+        0x8000,
+    );
     cpu.reset();
     cpu.run();
 
@@ -554,13 +566,16 @@ fn test_bpl_does_not_branch_when_negative_set() {
 fn test_bcc_branches_when_carry_clear() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![
-        0x18, // CLC clears carry
-        0x90, 0x02, // BCC skip next LDA when carry clear
-        0xa9, 0x00, // would execute if branch failed
-        0xa9, 0x42, // branch target
-        0x00,
-    ]);
+    cpu.load(
+        vec![
+            0x18, // CLC clears carry
+            0x90, 0x02, // BCC skip next LDA when carry clear
+            0xa9, 0x00, // would execute if branch failed
+            0xa9, 0x42, // branch target
+            0x00,
+        ],
+        0x8000,
+    );
     cpu.reset();
     cpu.run();
 
@@ -571,14 +586,17 @@ fn test_bcc_branches_when_carry_clear() {
 fn test_bcc_does_not_branch_when_carry_set() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![
-        0x38, // SEC sets carry
-        0x90, 0x03, // BCC should not branch when carry is set
-        0xa9, 0x66, // should execute because branch is inhibited
-        0x00, // BRK to stop sequential path
-        0xa9, 0x00, // branch target if it were taken
-        0x00,
-    ]);
+    cpu.load(
+        vec![
+            0x38, // SEC sets carry
+            0x90, 0x03, // BCC should not branch when carry is set
+            0xa9, 0x66, // should execute because branch is inhibited
+            0x00, // BRK to stop sequential path
+            0xa9, 0x00, // branch target if it were taken
+            0x00,
+        ],
+        0x8000,
+    );
     cpu.reset();
     cpu.run();
 
@@ -589,11 +607,14 @@ fn test_bcc_does_not_branch_when_carry_set() {
 fn test_bcs_branches_when_carry_set() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![
-        0x38, // SEC sets carry flag
-        0xb0, 0x02, // BCS skip next LDA when carry set
-        0xa9, 0x00, 0xa9, 0x55, 0x00,
-    ]);
+    cpu.load(
+        vec![
+            0x38, // SEC sets carry flag
+            0xb0, 0x02, // BCS skip next LDA when carry set
+            0xa9, 0x00, 0xa9, 0x55, 0x00,
+        ],
+        0x8000,
+    );
     cpu.reset();
     cpu.run();
 
@@ -604,13 +625,16 @@ fn test_bcs_branches_when_carry_set() {
 fn test_bcs_does_not_branch_when_carry_clear() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![
-        0x18, // CLC clears carry
-        0xb0, 0x02, // BCS should not branch when carry clear
-        0xa9, 0x77, // should execute sequentially
-        0x00, 0xa9, 0x00, // branch target if it were taken
-        0x00,
-    ]);
+    cpu.load(
+        vec![
+            0x18, // CLC clears carry
+            0xb0, 0x02, // BCS should not branch when carry clear
+            0xa9, 0x77, // should execute sequentially
+            0x00, 0xa9, 0x00, // branch target if it were taken
+            0x00,
+        ],
+        0x8000,
+    );
     cpu.reset();
     cpu.run();
 
@@ -621,10 +645,13 @@ fn test_bcs_does_not_branch_when_carry_clear() {
 fn test_bvs_branches_when_overflow_set() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![
-        0x70, 0x02, // BVS skip next LDA when overflow set
-        0xa9, 0x00, 0xa9, 0x99, 0x00,
-    ]);
+    cpu.load(
+        vec![
+            0x70, 0x02, // BVS skip next LDA when overflow set
+            0xa9, 0x00, 0xa9, 0x99, 0x00,
+        ],
+        0x8000,
+    );
     cpu.reset();
     cpu.status |= FLAG_OVERFLOW;
     cpu.run();
@@ -636,12 +663,15 @@ fn test_bvs_branches_when_overflow_set() {
 fn test_bvs_does_not_branch_when_overflow_clear() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![
-        0x70, 0x02, // BVS should not branch when overflow clear
-        0xa9, 0x33, // executes if branch not taken
-        0x00, 0xa9, 0x00, // branch target if taken
-        0x00,
-    ]);
+    cpu.load(
+        vec![
+            0x70, 0x02, // BVS should not branch when overflow clear
+            0xa9, 0x33, // executes if branch not taken
+            0x00, 0xa9, 0x00, // branch target if taken
+            0x00,
+        ],
+        0x8000,
+    );
     cpu.reset();
     cpu.status &= !FLAG_OVERFLOW;
     cpu.run();
@@ -653,11 +683,14 @@ fn test_bvs_does_not_branch_when_overflow_clear() {
 fn test_bne_branches_when_zero_clear() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![
-        0xa9, 0x01, // LDA #$01 -> zero flag clear
-        0xd0, 0x03, // BNE skip next LDA when zero clear
-        0xa9, 0x00, 0x00, 0xa9, 0x77, 0x00,
-    ]);
+    cpu.load(
+        vec![
+            0xa9, 0x01, // LDA #$01 -> zero flag clear
+            0xd0, 0x03, // BNE skip next LDA when zero clear
+            0xa9, 0x00, 0x00, 0xa9, 0x77, 0x00,
+        ],
+        0x8000,
+    );
     cpu.reset();
     cpu.run();
 
@@ -668,12 +701,15 @@ fn test_bne_branches_when_zero_clear() {
 fn test_bne_does_not_branch_when_zero_set() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![
-        0xa9, 0x00, // LDA #$00 -> sets zero flag
-        0xd0, 0x02, // BNE should not branch when zero set
-        0xa9, 0x66, // should execute sequentially
-        0x00, 0xa9, 0x00, 0x00,
-    ]);
+    cpu.load(
+        vec![
+            0xa9, 0x00, // LDA #$00 -> sets zero flag
+            0xd0, 0x02, // BNE should not branch when zero set
+            0xa9, 0x66, // should execute sequentially
+            0x00, 0xa9, 0x00, 0x00,
+        ],
+        0x8000,
+    );
     cpu.reset();
     cpu.run();
 
@@ -684,11 +720,14 @@ fn test_bne_does_not_branch_when_zero_set() {
 fn test_beq_branches_when_zero_set() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![
-        0xa9, 0x00, // LDA #$00 -> zero flag set
-        0xf0, 0x02, // BEQ skip next LDA when zero set
-        0xa9, 0x11, 0xa9, 0x88, 0x00,
-    ]);
+    cpu.load(
+        vec![
+            0xa9, 0x00, // LDA #$00 -> zero flag set
+            0xf0, 0x02, // BEQ skip next LDA when zero set
+            0xa9, 0x11, 0xa9, 0x88, 0x00,
+        ],
+        0x8000,
+    );
     cpu.reset();
     cpu.run();
 
@@ -699,11 +738,14 @@ fn test_beq_branches_when_zero_set() {
 fn test_beq_does_not_branch_when_zero_clear() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![
-        0xa9, 0x01, // LDA #$01 -> zero clear
-        0xf0, 0x02, // BEQ should not branch when zero clear
-        0xa9, 0x22, 0x00, 0xa9, 0x99, 0x00,
-    ]);
+    cpu.load(
+        vec![
+            0xa9, 0x01, // LDA #$01 -> zero clear
+            0xf0, 0x02, // BEQ should not branch when zero clear
+            0xa9, 0x22, 0x00, 0xa9, 0x99, 0x00,
+        ],
+        0x8000,
+    );
     cpu.reset();
     cpu.run();
 
@@ -714,7 +756,7 @@ fn test_beq_does_not_branch_when_zero_clear() {
 fn test_clc_clears_carry_flag() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![0x18, 0x00]);
+    cpu.load(vec![0x18, 0x00], 0x8000);
     cpu.reset();
     cpu.status |= FLAG_CARRY;
     cpu.run();
@@ -731,7 +773,7 @@ fn test_jsr_pushes_return_address_and_jumps() {
     // 0x8003: BRK (should be skipped)
     // 0x8005: LDA #$42
     // 0x8007: BRK
-    cpu.load(vec![0x20, 0x05, 0x80, 0x00, 0x00, 0xa9, 0x42, 0x00]);
+    cpu.load(vec![0x20, 0x05, 0x80, 0x00, 0x00, 0xa9, 0x42, 0x00], 0x8000);
     cpu.reset();
     cpu.run();
 
@@ -744,13 +786,16 @@ fn test_jsr_pushes_return_address_and_jumps() {
 fn test_rts_pops_return_address_and_resumes() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![
-        0x20, 0x06, 0x80, // 0x8000: JSR $8006
-        0xA9, 0x99, // 0x8003: RTS 应该跳回到这里！(JSR 结尾 $8002 + 1)
-        0x00, // 0x8005: 最终在这里结束
-        0xA9, 0x77, // 0x8006: 子程序开始: LDA #$77
-        0x60, // 0x8008: RTS
-    ]);
+    cpu.load(
+        vec![
+            0x20, 0x06, 0x80, // 0x8000: JSR $8006
+            0xA9, 0x99, // 0x8003: RTS 应该跳回到这里！(JSR 结尾 $8002 + 1)
+            0x00, // 0x8005: 最终在这里结束
+            0xA9, 0x77, // 0x8006: 子程序开始: LDA #$77
+            0x60, // 0x8008: RTS
+        ],
+        0x8000,
+    );
     cpu.reset();
     cpu.run();
 
@@ -765,13 +810,16 @@ fn test_rts_pops_return_address_and_resumes() {
 fn test_bmi_branches_when_negative_set() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![
-        0xa9, 0xff, // LDA #$FF -> sets negative flag
-        0x30, 0x02, // BMI skip next instruction
-        0xa9, 0x00, // would clear A if branch failed
-        0xa9, 0x77, // branch target
-        0x00,
-    ]);
+    cpu.load(
+        vec![
+            0xa9, 0xff, // LDA #$FF -> sets negative flag
+            0x30, 0x02, // BMI skip next instruction
+            0xa9, 0x00, // would clear A if branch failed
+            0xa9, 0x77, // branch target
+            0x00,
+        ],
+        0x8000,
+    );
     cpu.reset();
     cpu.run();
 
@@ -782,12 +830,15 @@ fn test_bmi_branches_when_negative_set() {
 fn test_bmi_does_not_branch_when_negative_clear() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![
-        0xa9, 0x01, // LDA #$01 -> negative clear
-        0x30, 0x02, // BMI shouldn't branch
-        0xa9, 0x66, // executed if branch skipped
-        0x00,
-    ]);
+    cpu.load(
+        vec![
+            0xa9, 0x01, // LDA #$01 -> negative clear
+            0x30, 0x02, // BMI shouldn't branch
+            0xa9, 0x66, // executed if branch skipped
+            0x00,
+        ],
+        0x8000,
+    );
     cpu.reset();
     cpu.run();
 
@@ -798,7 +849,7 @@ fn test_bmi_does_not_branch_when_negative_clear() {
 fn test_cli_clears_interrupt_disable() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![0x58, 0x00]);
+    cpu.load(vec![0x58, 0x00], 0x8000);
     cpu.reset();
     cpu.status |= 0b0000_0100; // set I flag
     cpu.run();
@@ -810,7 +861,7 @@ fn test_cli_clears_interrupt_disable() {
 fn test_sei_sets_interrupt_disable_flag() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![0x58, 0x78, 0x00]); // CLI clears I, SEI should set it
+    cpu.load(vec![0x58, 0x78, 0x00], 0x8000); // CLI clears I, SEI should set it
     cpu.reset();
     cpu.run();
 
@@ -821,7 +872,7 @@ fn test_sei_sets_interrupt_disable_flag() {
 fn test_sed_sets_decimal_flag() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![0xD8, 0xF8, 0x00]); // CLD clears D, SED should set it
+    cpu.load(vec![0xD8, 0xF8, 0x00], 0x8000); // CLD clears D, SED should set it
     cpu.reset();
     cpu.run();
 
@@ -832,7 +883,7 @@ fn test_sed_sets_decimal_flag() {
 fn test_cld_clears_decimal_flag() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![0xF8, 0xD8, 0x00]); // SED sets D, CLD should clear it
+    cpu.load(vec![0xF8, 0xD8, 0x00], 0x8000); // SED sets D, CLD should clear it
     cpu.reset();
     cpu.run();
 
@@ -843,12 +894,15 @@ fn test_cld_clears_decimal_flag() {
 fn test_clv_clears_overflow_flag() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![
-        0xA9, 0xFF, // LDA #$FF
-        0x2C, 0x00, 0x20, // BIT $2000 sets V from memory
-        0xB8, // CLV clears overflow
-        0x00,
-    ]);
+    cpu.load(
+        vec![
+            0xA9, 0xFF, // LDA #$FF
+            0x2C, 0x00, 0x20, // BIT $2000 sets V from memory
+            0xB8, // CLV clears overflow
+            0x00,
+        ],
+        0x8000,
+    );
     cpu.reset();
     cpu.mem_write(0x2000, 0b0100_0000);
     cpu.run();
@@ -860,11 +914,14 @@ fn test_clv_clears_overflow_flag() {
 fn test_nop_does_not_change_state() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![
-        0xEA, // NOP
-        0xA9, 0x42, // LDA #$42
-        0x00,
-    ]);
+    cpu.load(
+        vec![
+            0xEA, // NOP
+            0xA9, 0x42, // LDA #$42
+            0x00,
+        ],
+        0x8000,
+    );
     cpu.reset();
     cpu.status = FLAG_CARRY | FLAG_ZERO; // preset some flags
     cpu.run();
@@ -880,7 +937,7 @@ fn test_nop_does_not_change_state() {
 fn test_eor_immediate_sets_flags() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![0xa9, 0xF0, 0x49, 0xFF, 0x00]);
+    cpu.load(vec![0xa9, 0xF0, 0x49, 0xFF, 0x00], 0x8000);
     cpu.reset();
     cpu.run();
 
@@ -894,7 +951,7 @@ fn test_eor_absolute_sets_zero_flag() {
     let mut cpu = CPU::new();
     cpu.mem_write(0x2000, 0xAA);
 
-    cpu.load(vec![0xa9, 0xAA, 0x4d, 0x00, 0x20, 0x00]);
+    cpu.load(vec![0xa9, 0xAA, 0x4d, 0x00, 0x20, 0x00], 0x8000);
     cpu.reset();
     cpu.run();
 
@@ -906,11 +963,14 @@ fn test_eor_absolute_sets_zero_flag() {
 fn test_jmp_absolute_sets_program_counter() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![
-        0x4c, 0x04, 0x80, // JMP $8005
-        0x00, // would run if JMP failed
-        0xa9, 0x99, 0x00,
-    ]);
+    cpu.load(
+        vec![
+            0x4c, 0x04, 0x80, // JMP $8005
+            0x00, // would run if JMP failed
+            0xa9, 0x99, 0x00,
+        ],
+        0x8000,
+    );
     cpu.reset();
     cpu.run();
 
@@ -922,10 +982,13 @@ fn test_jmp_absolute_sets_program_counter() {
 fn test_jmp_indirect_wraparound_bug() {
     let mut cpu = CPU::new();
 
-    cpu.load(vec![
-        0x6C, 0xFF, 0x02, // JMP ($02FF) -> hardware bug wraps high byte to $0200
-        0x00,
-    ]);
+    cpu.load(
+        vec![
+            0x6C, 0xFF, 0x02, // JMP ($02FF) -> hardware bug wraps high byte to $0200
+            0x00,
+        ],
+        0x8000,
+    );
     cpu.reset();
 
     // Arrange pointer bytes after program loading so they won't be overwritten
@@ -943,12 +1006,15 @@ fn test_rti_restores_status_and_resumes_execution() {
     let mut cpu = CPU::new();
 
     // Interrupt vector -> 0x8000
-    cpu.load(vec![
-        0x40, // RTI
-        0x00, // BRK to stop after return target executes
-        0xa9, 0x55, // LDA #$55 (this is where RTI should resume)
-        0x00,
-    ]);
+    cpu.load(
+        vec![
+            0x40, // RTI
+            0x00, // BRK to stop after return target executes
+            0xa9, 0x55, // LDA #$55 (this is where RTI should resume)
+            0x00,
+        ],
+        0x8000,
+    );
     cpu.reset();
 
     // Simulate interrupt frame: hardware pushes PCH, PCL, then status
