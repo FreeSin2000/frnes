@@ -489,4 +489,144 @@ where
         self.set_flag(FLAG_DECIMAL, true);
         self.advance_pc(opcode);
     }
+
+    // Undocumented insts
+    pub fn dop(&mut self, opcode: &OpCode) {
+        self.advance_pc(opcode);
+    }
+    pub fn top(&mut self, opcode: &OpCode) {
+        self.advance_pc(opcode);
+    }
+    pub fn unoffical_nop(&mut self, opcode: &OpCode) {
+        self.advance_pc(opcode);
+    }
+    pub fn lax(&mut self, opcode: &OpCode) {
+        let addr = self.get_operand_address(&opcode.mode);
+        let value = self.mem_read(addr);
+
+        self.register_a = value;
+        self.register_x = value;
+        self.update_zero_and_negative_flags(value);
+        self.advance_pc(opcode);
+    }
+    pub fn aax(&mut self, opcode: &OpCode) {
+        let addr = self.get_operand_address(&opcode.mode);
+
+        let result = self.register_a & self.register_x;
+        self.mem_write(addr, result);
+        self.advance_pc(opcode);
+    }
+    pub fn dcp(&mut self, opcode: &OpCode) {
+        let addr = self.get_operand_address(&opcode.mode);
+        let value = self.mem_read(addr);
+        let result = value.wrapping_sub(1);
+        // self.update_zero_and_negative_flags(result);
+        self.mem_write(addr, result);
+        self.compare(self.register_a, result);
+
+        self.advance_pc(opcode);
+    }
+
+    pub fn isc(&mut self, opcode: &OpCode) {
+        let addr = self.get_operand_address(&opcode.mode);
+        let value = self.mem_read(addr).wrapping_add(1);
+        self.mem_write(addr, value);
+
+        let carry = if self.get_flag(FLAG_CARRY) { 1 } else { 0 };
+
+        let a = self.register_a;
+        let neg_value = (!value) as u16;
+
+        let sum = (a as u16)
+            .wrapping_add(neg_value)
+            .wrapping_add(carry as u16);
+
+        self.set_flag(FLAG_CARRY, sum > 0xFF);
+
+        let result = sum as u8;
+        let overflow = (a ^ value) & (a ^ result) & 0x80 != 0;
+        self.set_flag(FLAG_OVERFLOW, overflow);
+
+        self.register_a = result;
+        self.update_zero_and_negative_flags(self.register_a);
+        self.advance_pc(opcode);
+    }
+
+    pub fn slo(&mut self, opcode: &OpCode) {
+        let addr = self.get_operand_address(&opcode.mode);
+        let value = self.mem_read(addr);
+
+        self.set_flag(FLAG_CARRY, (value & 0b1000_0000) != 0);
+
+        let result = value << 1;
+        self.mem_write(addr, result);
+
+        self.register_a |= result;
+        self.update_zero_and_negative_flags(self.register_a);
+
+        self.advance_pc(opcode);
+    }
+
+    pub fn rla(&mut self, opcode: &OpCode) {
+        let addr = self.get_operand_address(&opcode.mode);
+        let value = self.mem_read(addr);
+
+        let result = if self.get_flag(FLAG_CARRY) {
+            value << 1 | 1
+        } else {
+            value << 1
+        };
+        self.set_flag(FLAG_CARRY, value & 0x80 != 0);
+        self.mem_write(addr, result);
+        self.register_a &= result;
+        self.update_zero_and_negative_flags(self.register_a);
+        self.advance_pc(opcode);
+    }
+
+    pub fn sre(&mut self, opcode: &OpCode) {
+        let addr = self.get_operand_address(&opcode.mode);
+        let value = self.mem_read(addr);
+
+        let result = value >> 1;
+        self.set_flag(FLAG_CARRY, value & 0x01 != 0);
+
+        self.mem_write(addr, result);
+        self.register_a ^= result;
+        self.update_zero_and_negative_flags(self.register_a);
+        self.advance_pc(opcode);
+    }
+
+    pub fn rra(&mut self, opcode: &OpCode) {
+        let addr = self.get_operand_address(&opcode.mode);
+        let mut value = self.mem_read(addr);
+
+        let mut result = if self.get_flag(FLAG_CARRY) {
+            value >> 1 | 0x80
+        } else {
+            value >> 1
+        };
+
+        self.set_flag(FLAG_CARRY, value & 0x01 != 0);
+        self.mem_write(addr, result);
+
+        let carry = if self.get_flag(FLAG_CARRY) { 1 } else { 0 };
+
+        let a = self.register_a;
+        let sum = (a as u16)
+            .wrapping_add(result as u16)
+            .wrapping_add(carry as u16);
+
+        self.set_flag(FLAG_CARRY, sum > 0xFF);
+
+        value = result;
+        result = sum as u8;
+        
+        let overflow = (a ^ result) & (value ^ result) & 0x80 != 0;
+        self.set_flag(FLAG_OVERFLOW, overflow);
+
+        self.register_a = result;
+        self.update_zero_and_negative_flags(self.register_a);
+        self.advance_pc(opcode);
+
+    }
 }

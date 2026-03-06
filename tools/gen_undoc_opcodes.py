@@ -38,6 +38,17 @@ class UndocEntry:
     cycles: int
     mode: str
     comment: Optional[str] = None
+    unofficial_name: Optional[str] = None
+
+
+def extract_alias_from_heading(heading: str) -> Optional[str]:
+    paren_match = re.search(r"\(([^)]+)\)", heading)
+    if paren_match:
+        return paren_match.group(1).strip().upper()
+    bracket_match = re.search(r"\[([^\]]+)\]", heading)
+    if bracket_match:
+        return bracket_match.group(1).strip().upper()
+    return None
 
 
 def normalize_mode_name(raw: str) -> str:
@@ -81,7 +92,7 @@ def parse_cycles_field(raw: str) -> tuple[int, Optional[str]]:
     return int(field), comment
 
 
-def parse_table_row(line: str) -> Optional[UndocEntry]:
+def parse_table_row(line: str, alias_name: Optional[str]) -> Optional[UndocEntry]:
     if line.strip().startswith("-"):
         return None
     if "|" not in line:
@@ -112,6 +123,7 @@ def parse_table_row(line: str) -> Optional[UndocEntry]:
         cycles=cycles,
         mode=mode,
         comment=comment,
+        unofficial_name=alias_name,
     )
 
 
@@ -119,12 +131,14 @@ def parse_document(text: str) -> List[UndocEntry]:
     lines = text.splitlines()
     entries: List[UndocEntry] = []
     current_heading: Optional[str] = None
+    current_alias: Optional[str] = None
     in_table = False
     for idx, line in enumerate(lines):
         next_line = lines[idx + 1] if idx + 1 < len(lines) else None
         heading = is_heading_line(line, next_line)
         if heading:
             current_heading = heading
+            current_alias = extract_alias_from_heading(line)
             in_table = False
             continue
         stripped = line.strip()
@@ -136,7 +150,7 @@ def parse_document(text: str) -> List[UndocEntry]:
             continue
         if not in_table:
             continue
-        entry = parse_table_row(line)
+        entry = parse_table_row(line, current_alias)
         if entry is not None:
             entries.append(entry)
     return entries
@@ -154,7 +168,10 @@ def format_entries(entries: Iterable[UndocEntry], wrap: bool) -> str:
         line = f"{indent}0x{entry.code:02x}, \"{entry.mnemonic}\", {entry.length}, {entry.cycles}, "
         if entry.comment:
             line += f"/*{entry.comment}*/ "
-        line += f"{entry.mode};"
+        unofficial = "None"
+        if entry.unofficial_name:
+            unofficial = f"Some(\"{entry.unofficial_name}\")"
+        line += f"{entry.mode}, {unofficial};"
         lines.append(line.rstrip())
     if wrap:
         lines.append(")")

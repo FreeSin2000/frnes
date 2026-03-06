@@ -459,38 +459,38 @@ where
                 todo!("KIL");
             }
             0x03 | 0x07 | 0x0F | 0x13 | 0x17 | 0x1B | 0x1F => {
-                todo!("SLO");
+                self.slo(opcode);
             }
             0x04 | 0x14 | 0x34 | 0x44 | 0x54 | 0x64 | 0x74 | 0x80 | 0x82 | 0x89 | 0xC2 | 0xD4
             | 0xE2 | 0xF4 => {
-                todo!("DOP");
+                self.dop(opcode);
             }
             0x0B | 0x2B => {
                 todo!("AAC");
             }
             0x0C | 0x1C | 0x3C | 0x5C | 0x7C | 0xDC | 0xFC => {
-                todo!("TOP");
+                self.top(opcode);
             }
             0x1A | 0x3A | 0x5A | 0x7A | 0xDA | 0xFA => {
-                todo!("NOP (undocumented)");
+                self.unoffical_nop(opcode);
             }
             0x23 | 0x27 | 0x2F | 0x33 | 0x37 | 0x3B | 0x3F => {
-                todo!("RLA");
+                self.rla(opcode);
             }
             0x43 | 0x47 | 0x4F | 0x53 | 0x57 | 0x5B | 0x5F => {
-                todo!("SRE");
+                self.sre(opcode);
             }
             0x4B => {
                 todo!("ASR");
             }
             0x63 | 0x67 | 0x6F | 0x73 | 0x77 | 0x7B | 0x7F => {
-                todo!("RRA");
+                self.rra(opcode);
             }
             0x6B => {
                 todo!("ARR");
             }
             0x83 | 0x87 | 0x8F | 0x97 => {
-                todo!("AAX");
+                self.aax(opcode);
             }
             0x8B => {
                 todo!("XAA");
@@ -508,7 +508,7 @@ where
                 todo!("SXA");
             }
             0xA3 | 0xA7 | 0xAF | 0xB3 | 0xB7 | 0xBF => {
-                todo!("LAX");
+                self.lax(opcode);
             }
             0xAB => {
                 todo!("ATX");
@@ -520,13 +520,13 @@ where
                 todo!("AXS");
             }
             0xC3 | 0xC7 | 0xCF | 0xD3 | 0xD7 | 0xDB | 0xDF => {
-                todo!("DCP");
+                self.dcp(opcode);
             }
             0xE3 | 0xE7 | 0xEF | 0xF3 | 0xF7 | 0xFB | 0xFF => {
-                todo!("ISC");
+                self.isc(opcode);
             }
             0xEB => {
-                todo!("SBC (undocumented)");
+                self.sbc(opcode);
             }
             _ => todo!(),
         }

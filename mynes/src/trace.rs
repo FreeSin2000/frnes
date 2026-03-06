@@ -3,6 +3,7 @@ use crate::cpu::CPU;
 use crate::cpu::Mem;
 use crate::opcodes;
 use std::collections::HashMap;
+use std::fmt::format;
 
 pub fn trace<T>(cpu: &CPU<T>) -> String
 where
@@ -132,7 +133,13 @@ where
         .map(|z| format!("{:02x}", z))
         .collect::<Vec<String>>()
         .join(" ");
-    let asm_str = format!("{:04x}  {:8} {: >4} {}", begin, hex_str, ops.mnemonic, tmp)
+
+    let trace_mnemonic = match ops.unofficial_name {
+        None => String::from(ops.mnemonic),
+        Some(name) => format!("*{}", name),
+    };
+
+    let asm_str = format!("{:04x}  {:8} {: >4} {}", begin, hex_str, &trace_mnemonic, tmp)
         .trim()
         .to_string();
 

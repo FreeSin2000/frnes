@@ -20,6 +20,7 @@ class OpcodeEntry:
     cycles: int
     mode: str
     note: Optional[str] = None
+    unofficial_name: Optional[str] = None
 
 
 class H2PreCollector(HTMLParser):
@@ -132,6 +133,7 @@ def parse_standard_table(mnemonic: str, pre_text: str) -> List[OpcodeEntry]:
                 cycles=cycles,
                 mode=mode_variant,
                 note=note,
+                unofficial_name=None,
             )
         )
     return entries
@@ -156,6 +158,7 @@ def parse_branch_block(pre_text: str) -> List[OpcodeEntry]:
                 cycles=2,
                 mode="Relative",
                 note="+1 if branch taken, +1 more if page crossed",
+                unofficial_name=None,
             )
         )
     return entries
@@ -179,6 +182,8 @@ def parse_flag_block(pre_text: str) -> List[OpcodeEntry]:
                 length=1,
                 cycles=2,
                 mode="NoneAddressing",
+                note=None,
+                unofficial_name=None,
             )
         )
     return entries
@@ -202,6 +207,8 @@ def parse_register_block(pre_text: str) -> List[OpcodeEntry]:
                 length=1,
                 cycles=2,
                 mode="NoneAddressing",
+                note=None,
+                unofficial_name=None,
             )
         )
     return entries
@@ -226,6 +233,8 @@ def parse_stack_block(pre_text: str) -> List[OpcodeEntry]:
                 length=1,
                 cycles=cycles,
                 mode="NoneAddressing",
+                note=None,
+                unofficial_name=None,
             )
         )
     return entries
@@ -265,6 +274,7 @@ def opcodes_to_dict(opcodes: Dict[int, OpcodeEntry]) -> Dict[str, Dict[str, obje
             "cycles": entry.cycles,
             "mode": entry.mode,
             "note": entry.note,
+            "unofficial_name": entry.unofficial_name,
         }
         for code, entry in sorted(opcodes.items())
     }
@@ -275,8 +285,11 @@ def format_define_opcodes(opcodes: Dict[int, OpcodeEntry]) -> str:
     for code in sorted(opcodes):
         entry = opcodes[code]
         comment = f" /*{entry.note}*/" if entry.note else ""
+        unofficial = "None"
+        if entry.unofficial_name:
+            unofficial = f"Some(\"{entry.unofficial_name}\")"
         lines.append(
-            f"    0x{code:02x}, \"{entry.mnemonic}\", {entry.length}, {entry.cycles}, {comment} {entry.mode};".replace(
+            f"    0x{code:02x}, \"{entry.mnemonic}\", {entry.length}, {entry.cycles}, {comment} {entry.mode}, {unofficial};".replace(
                 "  ", " "
             ).replace(" ,", ",")
         )
