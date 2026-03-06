@@ -1,7 +1,5 @@
-use super::*;
 use super::Mem;
-
-
+use super::*;
 
 #[test]
 fn test_reset_initializes_stack_pointer() {

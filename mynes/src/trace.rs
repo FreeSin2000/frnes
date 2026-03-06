@@ -102,16 +102,14 @@ where
                         format!("${:04x}", address)
                     }
                 }
-                AddressingMode::Absolute => {
-                    match ops.code {
-                        0x4c | 0x20 => {
-                            format!("${:04x}", mem_addr)
-                        }
-                        _ => {
-                            format!("${:04x} = {:02x}", mem_addr, stored_value)
-                        }
+                AddressingMode::Absolute => match ops.code {
+                    0x4c | 0x20 => {
+                        format!("${:04x}", mem_addr)
                     }
-                }
+                    _ => {
+                        format!("${:04x} = {:02x}", mem_addr, stored_value)
+                    }
+                },
                 AddressingMode::Absolute_X => format!(
                     "${:04x},X @ {:04x} = {:02x}",
                     address, mem_addr, stored_value
