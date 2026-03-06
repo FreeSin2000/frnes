@@ -3,56 +3,114 @@ use std::fmt;
 
 pub mod instruction;
 pub mod state;
+pub use crate::cpu::state::*;
 
-use crate::cpu::state::*;
+pub trait Mem {
+    fn mem_read(&self, addr: u16) -> u8;
 
-impl CPU {
+    fn mem_write(&mut self, addr: u16, data: u8);
+
+    fn mem_read_u16(&self, pos: u16) -> u16 {
+        let lo = self.mem_read(pos) as u16;
+        let hi = self.mem_read(pos + 1) as u16;
+        (hi << 8) | (lo as u16)
+    }
+
+    fn mem_write_u16(&mut self, pos: u16, data: u16) {
+        let hi = (data >> 8) as u8;
+        let lo = (data & 0xff) as u8;
+        self.mem_write(pos, lo);
+        self.mem_write(pos + 1, hi);
+    }
+}
+
+pub struct TestMemory {
+    memory: [u8; 0xFFFF],
+}
+impl Mem for TestMemory {
+    fn mem_read(&self, addr: u16) -> u8 {
+        self.memory[addr as usize]
+    }
+    fn mem_write(&mut self, addr: u16, data: u8) {
+        self.memory[addr as usize] = data;
+    }
+}
+impl TestMemory {
     pub fn new() -> Self {
+        Self {
+            memory: [0; 0xFFFF],
+        }
+    }
+}
+
+impl<T> Mem for CPU<T>
+where
+    T: Mem,
+{
+    fn mem_read(&self, addr: u16) -> u8 {
+        self.bus.mem_read(addr)
+    }
+
+    fn mem_write(&mut self, addr: u16, data: u8) {
+        self.bus.mem_write(addr, data)
+    }
+    fn mem_read_u16(&self, pos: u16) -> u16 {
+        self.bus.mem_read_u16(pos)
+    }
+
+    fn mem_write_u16(&mut self, pos: u16, data: u16) {
+        self.bus.mem_write_u16(pos, data)
+    }
+}
+
+impl<T> CPU<T>
+where
+    T: Mem,
+{
+    pub fn new(bus: T) -> Self {
         CPU {
             register_a: 0,
             register_x: 0,
             register_y: 0,
-            status: 0,
+            status: FLAG_INTERRUPT_DISABLE | FLAG_UNUSED,
             program_counter: 0,
-            sp: 0xFF,
-            memory: [0; 0xFFFF],
+            sp: STACK_RESET,
+            bus: bus,
             halted: false,
         }
     }
 
-    fn get_operand_address(&mut self, mode: &AddressingMode) -> u16 {
+    pub fn get_absolute_address(&self, mode: &AddressingMode, addr: u16) -> u16 {
         match mode {
-            AddressingMode::Immediate => self.program_counter,
+            AddressingMode::ZeroPage => self.mem_read(addr) as u16,
 
-            AddressingMode::ZeroPage => self.mem_read(self.program_counter) as u16,
-
-            AddressingMode::Absolute => self.mem_read_u16(self.program_counter),
+            AddressingMode::Absolute => self.mem_read_u16(addr),
 
             AddressingMode::ZeroPage_X => {
-                let pos = self.mem_read(self.program_counter);
+                let pos = self.mem_read(addr);
                 let addr = pos.wrapping_add(self.register_x) as u16;
                 addr
             }
 
             AddressingMode::ZeroPage_Y => {
-                let pos = self.mem_read(self.program_counter);
+                let pos = self.mem_read(addr);
                 let addr = pos.wrapping_add(self.register_y) as u16;
                 addr
             }
 
             AddressingMode::Absolute_X => {
-                let base = self.mem_read_u16(self.program_counter);
+                let base = self.mem_read_u16(addr);
                 let addr = base.wrapping_add(self.register_x as u16);
                 addr
             }
             AddressingMode::Absolute_Y => {
-                let base = self.mem_read_u16(self.program_counter);
+                let base = self.mem_read_u16(addr);
                 let addr = base.wrapping_add(self.register_y as u16);
                 addr
             }
 
             AddressingMode::Indirect => {
-                let base = self.mem_read_u16(self.program_counter);
+                let base = self.mem_read_u16(addr);
                 let ptr = base & 0xFF00;
                 let indirect_addr_lo = self.mem_read(base);
                 let indirect_addr_hi = self.mem_read(ptr + ((base as u8).wrapping_add(1) as u16));
@@ -60,7 +118,7 @@ impl CPU {
             }
 
             AddressingMode::Indirect_X => {
-                let base = self.mem_read(self.program_counter);
+                let base = self.mem_read(addr);
 
                 let ptr: u8 = (base as u8).wrapping_add(self.register_x);
                 let lo = self.mem_read(ptr as u16);
@@ -69,7 +127,7 @@ impl CPU {
             }
 
             AddressingMode::Indirect_Y => {
-                let base = self.mem_read(self.program_counter);
+                let base = self.mem_read(addr);
 
                 let lo = self.mem_read(base as u16);
                 let hi = self.mem_read((base as u8).wrapping_add(1) as u16);
@@ -87,54 +145,43 @@ impl CPU {
             AddressingMode::Relative => {
                 panic!("mode {:?} should be handled by branch logic", mode);
             }
+            _ => {
+                panic!("mode {:?} is not supported", mode);
+            }
         }
     }
 
-    pub fn mem_read(&self, addr: u16) -> u8 {
-        self.memory[addr as usize]
-    }
-
-    pub fn mem_write(&mut self, addr: u16, data: u8) {
-        self.memory[addr as usize] = data;
-    }
-
-    fn mem_read_u16(&mut self, pos: u16) -> u16 {
-        let lo = self.mem_read(pos) as u16;
-        let hi = self.mem_read(pos + 1) as u16;
-        (hi << 8) | (lo as u16)
-    }
-
-    fn mem_write_u16(&mut self, pos: u16, data: u16) {
-        let hi = (data >> 8) as u8;
-        let lo = (data & 0xff) as u8;
-        self.mem_write(pos, lo);
-        self.mem_write(pos + 1, hi);
+    fn get_operand_address(&self, mode: &AddressingMode) -> u16 {
+        match mode {
+            AddressingMode::Immediate => self.program_counter,
+            _ => self.get_absolute_address(mode, self.program_counter),
+        }
     }
 
     pub fn reset(&mut self) {
         self.register_a = 0;
         self.register_x = 0;
         self.register_y = 0;
-        self.status = 0;
-        self.sp = 0xFD;
+        self.status = FLAG_INTERRUPT_DISABLE | FLAG_UNUSED;
+        self.sp = STACK_RESET;
 
         self.program_counter = self.mem_read_u16(0xFFFC);
     }
 
     pub fn load(&mut self, program: Vec<u8>, start: u16) {
-        let start_idx = start as usize;
-        let end_idx = start_idx + program.len();
-        self.memory[start_idx..end_idx].copy_from_slice(&program[..]);
+        for i in 0..(program.len() as u16) {
+            self.mem_write(start + i, program[i as usize]);
+        }
         self.mem_write_u16(0xFFFC, start);
     }
 
     pub fn run_with_callback<F>(&mut self, mut callback: F)
     where
-        F: FnMut(&mut CPU),
+        F: FnMut(&mut CPU<T>),
     {
         loop {
-            self.step();
             callback(self);
+            self.step();
             if self.halted {
                 break;
             }
@@ -150,9 +197,9 @@ impl CPU {
         }
     }
 
-    pub fn load_and_run_with_callback<F> (&mut self, program: Vec<u8>, start: u16, mut callback: F)
+    pub fn load_and_run_with_callback<F>(&mut self, program: Vec<u8>, start: u16, mut callback: F)
     where
-        F: FnMut(&mut CPU),
+        F: FnMut(&mut CPU<T>),
     {
         self.load(program, start);
         self.reset();
@@ -293,6 +340,9 @@ impl CPU {
             0x4C | 0x6C => {
                 self.jmp(opcode);
             }
+            0x50 => {
+                self.bvc(opcode);
+            }
             0x58 => {
                 self.cli(opcode);
             }
@@ -410,13 +460,16 @@ impl CPU {
     }
 }
 
-impl fmt::Display for CPU {
+impl<T> fmt::Display for CPU<T>
+where
+    T: Mem,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let flags = [
             (FLAG_NEGATIVE, 'N'),
             (FLAG_OVERFLOW, 'V'),
-            (0b0010_0000, '-'), // unused bit
-            (FLAG_B, 'B'),
+            (FLAG_UNUSED, '-'), // unused bit
+            (FLAG_BREAK, 'B'),
             (FLAG_DECIMAL, 'D'),
             (FLAG_INTERRUPT_DISABLE, 'I'),
             (FLAG_ZERO, 'Z'),

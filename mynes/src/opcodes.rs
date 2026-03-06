@@ -85,6 +85,7 @@ pub static CPU_OPS_CODES: LazyLock<Vec<OpCode>> = LazyLock::new(|| {
         0x4c, "JMP", 3, 3, Absolute;
         0x4d, "EOR", 3, 4, Absolute;
         0x4e, "LSR", 3, 6, Absolute;
+        0x50, "BVC", 2, 2, /*+1 if branch taken, +1 more if page crossed*/ Relative;
         0x51, "EOR", 2, 5, /*+1 if page crossed*/ Indirect_Y;
         0x55, "EOR", 2, 4, ZeroPage_X;
         0x56, "LSR", 2, 6, ZeroPage_X;

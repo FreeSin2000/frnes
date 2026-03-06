@@ -1,8 +1,11 @@
 use super::*;
+use super::Mem;
+
+
 
 #[test]
 fn test_reset_initializes_stack_pointer() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
     cpu.reset();
 
     assert_eq!(cpu.sp, 0xfd, "6502 reset should position SP at 0xFD");
@@ -10,7 +13,7 @@ fn test_reset_initializes_stack_pointer() {
 
 #[test]
 fn test_stack_push_and_pop_roundtrip() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
     cpu.reset();
     let initial_sp = cpu.sp;
 
@@ -27,7 +30,7 @@ fn test_stack_push_and_pop_roundtrip() {
 
 #[test]
 fn test_stack_push_and_pop_u16_roundtrip() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
     cpu.reset();
     let initial_sp = cpu.sp;
 
@@ -47,7 +50,7 @@ fn test_stack_push_and_pop_u16_roundtrip() {
 
 #[test]
 fn test_flag_helpers_control_status_register() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
     cpu.status = 0;
 
     cpu.set_flag(FLAG_CARRY, true);
@@ -63,7 +66,7 @@ fn test_flag_helpers_control_status_register() {
 
 #[test]
 fn test_compare_updates_carry_zero_and_negative() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.status = 0;
     cpu.compare(0x10, 0x0F);
@@ -86,7 +89,7 @@ fn test_compare_updates_carry_zero_and_negative() {
 
 #[test]
 fn test_branch_if_condition_true_moves_forward() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
     cpu.program_counter = 0x8000;
 
     cpu.branch_if(true, 6);
@@ -96,7 +99,7 @@ fn test_branch_if_condition_true_moves_forward() {
 
 #[test]
 fn test_branch_if_condition_true_moves_backward() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
     cpu.program_counter = 0x8050;
 
     cpu.branch_if(true, -0x10);
@@ -106,7 +109,7 @@ fn test_branch_if_condition_true_moves_backward() {
 
 #[test]
 fn test_branch_if_condition_false_keeps_program_counter() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
     cpu.program_counter = 0x9000;
 
     cpu.branch_if(false, 0x7F);
@@ -116,7 +119,7 @@ fn test_branch_if_condition_false_keeps_program_counter() {
 
 #[test]
 fn test_0xa9_lda_immediate_load_data() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
     cpu.load_and_run(vec![0xa9, 0x05, 0x00], 0x8000);
     assert_eq!(cpu.register_a, 0x05);
     assert!(cpu.status & 0b0000_0010 == 0b00);
@@ -125,14 +128,14 @@ fn test_0xa9_lda_immediate_load_data() {
 
 #[test]
 fn test_0xa9_lda_zero_flag() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
     cpu.load_and_run(vec![0xa9, 0x00, 0x00], 0x8000);
     assert!(cpu.status & 0b0000_0010 == 0b10);
 }
 
 #[test]
 fn test_0xaa_tax_move_a_to_x() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(vec![0xaa, 0x00], 0x8000);
     cpu.reset();
@@ -144,7 +147,7 @@ fn test_0xaa_tax_move_a_to_x() {
 
 #[test]
 fn test_5_ops_working_together() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
     cpu.load_and_run(vec![0xa9, 0xc0, 0xaa, 0xe8, 0x00], 0x8000);
 
     assert_eq!(cpu.register_x, 0xc1)
@@ -152,7 +155,7 @@ fn test_5_ops_working_together() {
 
 #[test]
 fn test_inx_overflow() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(vec![0xe8, 0xe8, 0x00], 0x8000);
     cpu.reset();
@@ -162,7 +165,7 @@ fn test_inx_overflow() {
 }
 #[test]
 fn test_lda_from_memory() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
     cpu.mem_write(0x10, 0x55);
 
     cpu.load_and_run(vec![0xa5, 0x10, 0x00], 0x8000);
@@ -172,7 +175,7 @@ fn test_lda_from_memory() {
 
 #[test]
 fn test_ldx_immediate_sets_zero_flag() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load_and_run(vec![0xa2, 0x00, 0x00], 0x8000);
 
@@ -183,7 +186,7 @@ fn test_ldx_immediate_sets_zero_flag() {
 
 #[test]
 fn test_ldy_absolute_sets_negative_flag() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
     cpu.mem_write(0x1234, 0x80);
 
     cpu.load_and_run(vec![0xac, 0x34, 0x12, 0x00], 0x8000);
@@ -195,7 +198,7 @@ fn test_ldy_absolute_sets_negative_flag() {
 
 #[test]
 fn test_store_instructions_write_memory() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(
         vec![0x8d, 0x00, 0x20, 0x86, 0x10, 0x8c, 0x02, 0x20, 0x00],
@@ -214,7 +217,7 @@ fn test_store_instructions_write_memory() {
 
 #[test]
 fn test_transfer_instructions_update_registers_and_flags() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load_and_run(
         vec![0xa9, 0x00, 0xa8, 0xa9, 0x10, 0xaa, 0x8a, 0x98, 0x00],
@@ -229,7 +232,7 @@ fn test_transfer_instructions_update_registers_and_flags() {
 
 #[test]
 fn test_php_plp_roundtrip_status_register() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(vec![0x08, 0x28, 0x00], 0x8000);
     cpu.reset();
@@ -242,7 +245,7 @@ fn test_php_plp_roundtrip_status_register() {
 
 #[test]
 fn test_pha_pla_roundtrip_accumulator() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(vec![0x48, 0x68, 0x00], 0x8000);
     cpu.reset();
@@ -255,7 +258,7 @@ fn test_pha_pla_roundtrip_accumulator() {
 
 #[test]
 fn test_ora_immediate_sets_negative_flag() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load_and_run(vec![0xa9, 0x40, 0x09, 0xc0, 0x00], 0x8000);
 
@@ -266,7 +269,7 @@ fn test_ora_immediate_sets_negative_flag() {
 
 #[test]
 fn test_and_immediate_sets_zero_flag() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load_and_run(vec![0xa9, 0x0f, 0x29, 0xf0, 0x00], 0x8000);
 
@@ -276,7 +279,7 @@ fn test_and_immediate_sets_zero_flag() {
 
 #[test]
 fn test_bit_absolute_updates_negative_and_overflow() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
     cpu.mem_write(0x2000, 0b1100_0000);
 
     cpu.load_and_run(vec![0xa9, 0xff, 0x2c, 0x00, 0x20, 0x00], 0x8000);
@@ -288,7 +291,7 @@ fn test_bit_absolute_updates_negative_and_overflow() {
 
 #[test]
 fn test_adc_sets_overflow_flag() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(vec![0xa9, 0x50, 0x69, 0x50, 0x00], 0x8000);
     cpu.reset();
@@ -301,7 +304,7 @@ fn test_adc_sets_overflow_flag() {
 
 #[test]
 fn test_sbc_uses_carry_as_borrow() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(vec![0xa9, 0x50, 0xe9, 0x10, 0x00], 0x8000);
     cpu.reset();
@@ -315,7 +318,7 @@ fn test_sbc_uses_carry_as_borrow() {
 
 #[test]
 fn test_cmp_sets_zero_and_carry() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
     cpu.mem_write(0x0010, 0x55);
 
     cpu.load_and_run(vec![0xa9, 0x55, 0xc5, 0x10, 0x00], 0x8000);
@@ -326,7 +329,7 @@ fn test_cmp_sets_zero_and_carry() {
 
 #[test]
 fn test_cpx_sets_negative_flag() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load_and_run(vec![0xa2, 0x10, 0xe0, 0x20, 0x00], 0x8000);
 
@@ -336,7 +339,7 @@ fn test_cpx_sets_negative_flag() {
 
 #[test]
 fn test_cpy_sets_zero_flag() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load_and_run(vec![0xa0, 0x20, 0xc0, 0x20, 0x00], 0x8000);
 
@@ -346,7 +349,7 @@ fn test_cpy_sets_zero_flag() {
 
 #[test]
 fn test_txs_and_tsx_roundtrip_stack_pointer() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load_and_run(vec![0xa2, 0x7f, 0x9a, 0xba, 0x00], 0x8000);
 
@@ -356,7 +359,7 @@ fn test_txs_and_tsx_roundtrip_stack_pointer() {
 
 #[test]
 fn test_asl_accumulator_sets_carry() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load_and_run(vec![0xa9, 0x81, 0x0a, 0x00], 0x8000);
 
@@ -367,7 +370,7 @@ fn test_asl_accumulator_sets_carry() {
 
 #[test]
 fn test_asl_zeropage_updates_memory_and_zero_flag() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
     cpu.mem_write(0x0042, 0x80);
 
     cpu.load_and_run(vec![0x06, 0x42, 0x00], 0x8000);
@@ -379,7 +382,7 @@ fn test_asl_zeropage_updates_memory_and_zero_flag() {
 
 #[test]
 fn test_lsr_accumulator_clears_negative_sets_carry() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load_and_run(vec![0xa9, 0x03, 0x4a, 0x00], 0x8000);
 
@@ -390,7 +393,7 @@ fn test_lsr_accumulator_clears_negative_sets_carry() {
 
 #[test]
 fn test_rol_accumulator_uses_carry() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(vec![0x38, 0xa9, 0x40, 0x2a, 0x00], 0x8000);
     cpu.reset();
@@ -403,7 +406,7 @@ fn test_rol_accumulator_uses_carry() {
 
 #[test]
 fn test_ror_zeropage_with_carry_in() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
     cpu.mem_write(0x0005, 0x02);
 
     cpu.load(vec![0x38, 0x66, 0x05, 0x00], 0x8000);
@@ -418,7 +421,7 @@ fn test_ror_zeropage_with_carry_in() {
 
 #[test]
 fn test_inc_and_dec_update_flags() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
     cpu.mem_write(0x00aa, 0xff);
 
     cpu.load_and_run(vec![0xe6, 0xaa, 0xc6, 0xaa, 0x00], 0x8000);
@@ -430,7 +433,7 @@ fn test_inc_and_dec_update_flags() {
 
 #[test]
 fn test_dex_underflow_sets_negative() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load_and_run(vec![0xa2, 0x00, 0xca, 0x00], 0x8000);
 
@@ -440,7 +443,7 @@ fn test_dex_underflow_sets_negative() {
 
 #[test]
 fn test_dey_sets_zero_flag() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load_and_run(vec![0xa0, 0x01, 0x88, 0x00], 0x8000);
 
@@ -450,7 +453,7 @@ fn test_dey_sets_zero_flag() {
 
 #[test]
 fn test_bit_zero_flag_when_mask_clears_a() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
     cpu.mem_write(0x0040, 0x00);
 
     cpu.load_and_run(vec![0xa9, 0xff, 0x24, 0x40, 0x00], 0x8000);
@@ -462,7 +465,7 @@ fn test_bit_zero_flag_when_mask_clears_a() {
 
 #[test]
 fn test_adc_sets_carry_flag_on_overflow() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load_and_run(vec![0xa9, 0xff, 0x69, 0x01, 0x00], 0x8000);
 
@@ -473,7 +476,7 @@ fn test_adc_sets_carry_flag_on_overflow() {
 
 #[test]
 fn test_sbc_with_borrow_clears_carry_and_sets_negative() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(vec![0xa9, 0x10, 0xe9, 0x20, 0x00], 0x8000);
     cpu.reset();
@@ -487,7 +490,7 @@ fn test_sbc_with_borrow_clears_carry_and_sets_negative() {
 
 #[test]
 fn test_lsr_zeropage_shifts_into_carry() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
     cpu.mem_write(0x0002, 0x01);
 
     cpu.load_and_run(vec![0x46, 0x02, 0x00], 0x8000);
@@ -499,7 +502,7 @@ fn test_lsr_zeropage_shifts_into_carry() {
 
 #[test]
 fn test_rol_zeropage_incorporates_previous_carry() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
     cpu.mem_write(0x00f0, 0x7f);
 
     cpu.load(vec![0x38, 0x26, 0xf0, 0x00], 0x8000);
@@ -513,7 +516,7 @@ fn test_rol_zeropage_incorporates_previous_carry() {
 
 #[test]
 fn test_iny_wraps_and_sets_zero_flag() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(vec![0xa0, 0xff, 0xc8, 0x00], 0x8000);
     cpu.reset();
@@ -525,7 +528,7 @@ fn test_iny_wraps_and_sets_zero_flag() {
 
 #[test]
 fn test_bpl_branches_when_negative_clear() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(
         vec![
@@ -545,7 +548,7 @@ fn test_bpl_branches_when_negative_clear() {
 
 #[test]
 fn test_bpl_does_not_branch_when_negative_set() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(
         vec![
@@ -564,7 +567,7 @@ fn test_bpl_does_not_branch_when_negative_set() {
 
 #[test]
 fn test_bcc_branches_when_carry_clear() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(
         vec![
@@ -584,7 +587,7 @@ fn test_bcc_branches_when_carry_clear() {
 
 #[test]
 fn test_bcc_does_not_branch_when_carry_set() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(
         vec![
@@ -605,7 +608,7 @@ fn test_bcc_does_not_branch_when_carry_set() {
 
 #[test]
 fn test_bcs_branches_when_carry_set() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(
         vec![
@@ -623,7 +626,7 @@ fn test_bcs_branches_when_carry_set() {
 
 #[test]
 fn test_bcs_does_not_branch_when_carry_clear() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(
         vec![
@@ -643,7 +646,7 @@ fn test_bcs_does_not_branch_when_carry_clear() {
 
 #[test]
 fn test_bvs_branches_when_overflow_set() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(
         vec![
@@ -661,7 +664,7 @@ fn test_bvs_branches_when_overflow_set() {
 
 #[test]
 fn test_bvs_does_not_branch_when_overflow_clear() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(
         vec![
@@ -681,7 +684,7 @@ fn test_bvs_does_not_branch_when_overflow_clear() {
 
 #[test]
 fn test_bne_branches_when_zero_clear() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(
         vec![
@@ -699,7 +702,7 @@ fn test_bne_branches_when_zero_clear() {
 
 #[test]
 fn test_bne_does_not_branch_when_zero_set() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(
         vec![
@@ -718,7 +721,7 @@ fn test_bne_does_not_branch_when_zero_set() {
 
 #[test]
 fn test_beq_branches_when_zero_set() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(
         vec![
@@ -736,7 +739,7 @@ fn test_beq_branches_when_zero_set() {
 
 #[test]
 fn test_beq_does_not_branch_when_zero_clear() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(
         vec![
@@ -754,7 +757,7 @@ fn test_beq_does_not_branch_when_zero_clear() {
 
 #[test]
 fn test_clc_clears_carry_flag() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(vec![0x18, 0x00], 0x8000);
     cpu.reset();
@@ -766,7 +769,7 @@ fn test_clc_clears_carry_flag() {
 
 #[test]
 fn test_jsr_pushes_return_address_and_jumps() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     // Program layout:
     // 0x8000: JSR $8005 -> push return addr (0x8002) then jump to 0x8005
@@ -784,7 +787,7 @@ fn test_jsr_pushes_return_address_and_jumps() {
 
 #[test]
 fn test_rts_pops_return_address_and_resumes() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(
         vec![
@@ -808,7 +811,7 @@ fn test_rts_pops_return_address_and_resumes() {
 
 #[test]
 fn test_bmi_branches_when_negative_set() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(
         vec![
@@ -828,7 +831,7 @@ fn test_bmi_branches_when_negative_set() {
 
 #[test]
 fn test_bmi_does_not_branch_when_negative_clear() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(
         vec![
@@ -847,7 +850,7 @@ fn test_bmi_does_not_branch_when_negative_clear() {
 
 #[test]
 fn test_cli_clears_interrupt_disable() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(vec![0x58, 0x00], 0x8000);
     cpu.reset();
@@ -859,7 +862,7 @@ fn test_cli_clears_interrupt_disable() {
 
 #[test]
 fn test_sei_sets_interrupt_disable_flag() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(vec![0x58, 0x78, 0x00], 0x8000); // CLI clears I, SEI should set it
     cpu.reset();
@@ -870,7 +873,7 @@ fn test_sei_sets_interrupt_disable_flag() {
 
 #[test]
 fn test_sed_sets_decimal_flag() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(vec![0xD8, 0xF8, 0x00], 0x8000); // CLD clears D, SED should set it
     cpu.reset();
@@ -881,7 +884,7 @@ fn test_sed_sets_decimal_flag() {
 
 #[test]
 fn test_cld_clears_decimal_flag() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(vec![0xF8, 0xD8, 0x00], 0x8000); // SED sets D, CLD should clear it
     cpu.reset();
@@ -892,7 +895,7 @@ fn test_cld_clears_decimal_flag() {
 
 #[test]
 fn test_clv_clears_overflow_flag() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(
         vec![
@@ -912,7 +915,7 @@ fn test_clv_clears_overflow_flag() {
 
 #[test]
 fn test_nop_does_not_change_state() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(
         vec![
@@ -935,7 +938,7 @@ fn test_nop_does_not_change_state() {
 
 #[test]
 fn test_eor_immediate_sets_flags() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(vec![0xa9, 0xF0, 0x49, 0xFF, 0x00], 0x8000);
     cpu.reset();
@@ -948,7 +951,7 @@ fn test_eor_immediate_sets_flags() {
 
 #[test]
 fn test_eor_absolute_sets_zero_flag() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
     cpu.mem_write(0x2000, 0xAA);
 
     cpu.load(vec![0xa9, 0xAA, 0x4d, 0x00, 0x20, 0x00], 0x8000);
@@ -961,7 +964,7 @@ fn test_eor_absolute_sets_zero_flag() {
 
 #[test]
 fn test_jmp_absolute_sets_program_counter() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(
         vec![
@@ -980,7 +983,7 @@ fn test_jmp_absolute_sets_program_counter() {
 
 #[test]
 fn test_jmp_indirect_wraparound_bug() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     cpu.load(
         vec![
@@ -1003,7 +1006,7 @@ fn test_jmp_indirect_wraparound_bug() {
 
 #[test]
 fn test_rti_restores_status_and_resumes_execution() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
 
     // Interrupt vector -> 0x8000
     cpu.load(
@@ -1035,7 +1038,7 @@ fn test_rti_restores_status_and_resumes_execution() {
 
 #[test]
 fn test_cpu_display_formats_registers_and_flags() {
-    let mut cpu = CPU::new();
+    let mut cpu = CPU::new(TestMemory::new());
     cpu.program_counter = 0xC123;
     cpu.register_a = 0x10;
     cpu.register_x = 0x20;

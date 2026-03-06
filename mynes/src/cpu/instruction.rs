@@ -1,7 +1,11 @@
+use crate::cpu::Mem;
 use crate::cpu::state::*;
 use crate::opcodes::OpCode;
 
-impl CPU {
+impl<T> CPU<T>
+where
+    T: Mem,
+{
     pub fn lda(&mut self, opcode: &OpCode) {
         let addr = self.get_operand_address(&opcode.mode);
         let value = self.mem_read(addr);
@@ -47,6 +51,18 @@ impl CPU {
         self.advance_pc(opcode);
     }
 
+    fn get_status_for_stack(&self, is_software_trigger: bool) -> u8 {
+        if is_software_trigger {
+            self.status | FLAG_BREAK | FLAG_UNUSED
+        } else {
+            (self.status | FLAG_UNUSED) & !FLAG_BREAK
+        }
+    }
+
+    fn set_status_from_stack(&mut self, value: u8) {
+        self.status = (value & !FLAG_BREAK) | FLAG_UNUSED;
+    }
+
     pub fn pha(&mut self, opcode: &OpCode) {
         let data = self.register_a;
         self.stack_push(data);
@@ -55,17 +71,20 @@ impl CPU {
 
     pub fn pla(&mut self, opcode: &OpCode) {
         self.register_a = self.stack_pop();
+        self.update_zero_and_negative_flags(self.register_a);
         self.advance_pc(opcode);
     }
 
     pub fn php(&mut self, opcode: &OpCode) {
-        let data = self.status;
+        let data = self.get_status_for_stack(true);
         self.stack_push(data);
         self.advance_pc(opcode);
     }
 
     pub fn plp(&mut self, opcode: &OpCode) {
-        self.status = self.stack_pop();
+        let val = self.stack_pop();
+        self.set_status_from_stack(val);
+        // self.status = val;
         self.advance_pc(opcode);
     }
 
@@ -101,7 +120,6 @@ impl CPU {
 
     pub fn txs(&mut self, opcode: &OpCode) {
         self.sp = self.register_x;
-        self.update_zero_and_negative_flags(self.sp);
         self.advance_pc(opcode);
     }
 
@@ -381,7 +399,8 @@ impl CPU {
     }
 
     pub fn rti(&mut self, opcode: &OpCode) {
-        self.status = self.stack_pop();
+        let val = self.stack_pop();
+        self.set_status_from_stack(val);
         self.advance_pc(opcode);
         self.program_counter = self.stack_pop_u16();
     }
@@ -415,6 +434,12 @@ impl CPU {
         let offset = self.mem_read(self.program_counter) as i8;
         self.advance_pc(opcode);
         self.branch_if(self.get_flag(FLAG_OVERFLOW), offset);
+    }
+
+    pub fn bvc(&mut self, opcode: &OpCode) {
+        let offset = self.mem_read(self.program_counter) as i8;
+        self.advance_pc(opcode);
+        self.branch_if(!self.get_flag(FLAG_OVERFLOW), offset);
     }
 
     pub fn bcc(&mut self, opcode: &OpCode) {
@@ -464,5 +489,4 @@ impl CPU {
         self.set_flag(FLAG_DECIMAL, true);
         self.advance_pc(opcode);
     }
-
 }
